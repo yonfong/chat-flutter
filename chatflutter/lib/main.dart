@@ -17,9 +17,9 @@ class ChatScreen extends StatefulWidget {
   State createState() => ChatScreenState();
 }
 
-class ChatScreenState extends State<ChatScreen> {
+class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final _textController = TextEditingController();
-  final _message = <ChatMessage>[];
+  final _messages = <ChatMessage>[];
   
   @override
   Widget build(BuildContext context) {
@@ -33,8 +33,8 @@ class ChatScreenState extends State<ChatScreen> {
             child: ListView.builder(
               padding: EdgeInsets.all(8),
               reverse: true,
-              itemBuilder: (_, int index) => _message[index],
-              itemCount: _message.length,
+              itemBuilder: (_, int index) => _messages[index],
+              itemCount: _messages.length,
             ),
           ),
           Divider(height: 1),
@@ -47,6 +47,14 @@ class ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    for (ChatMessage message in _messages) {
+      message.animationController.dispose();
+    }
+    super.dispose();
   }
 
   Widget _buildTextComposer() {
@@ -76,18 +84,21 @@ class ChatScreenState extends State<ChatScreen> {
         )
       ),
     );
-    
   }
-
 
   void _handleSubmitted(String text) {
     _textController.clear();
     ChatMessage message = ChatMessage(
       text: text,
+      animationController: AnimationController(
+        duration: Duration(milliseconds: 500),
+        vsync: this
+      ),
     );
     setState(() {
-       _message.insert(0, message);   
+       _messages.insert(0, message);   
     });
+    message.animationController.forward();
   }
 
 }
@@ -95,34 +106,41 @@ class ChatScreenState extends State<ChatScreen> {
 const String _name = 'yonfong';
 
 class ChatMessage extends StatelessWidget {
-  ChatMessage({this.text});
+  ChatMessage({this.text, this.animationController});
   final String text;
-  
+  final AnimationController animationController;
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(child: Text(_name[0])),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                _name,
-                style: Theme.of(context).textTheme.subhead
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 5),
-                child: Text(text),
-              )
-            ],
-          )
-        ],
+    return SizeTransition(
+      sizeFactor: CurvedAnimation(
+        parent: animationController,
+        curve: Curves.easeInOut
+      ),
+      axisAlignment: 0,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(child: Text(_name[0])),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _name,
+                  style: Theme.of(context).textTheme.subhead
+                ),
+                Container(
+                  margin: const EdgeInsets.only(top: 5),
+                  child: Text(text),
+                )
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
